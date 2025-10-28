@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -42,28 +42,23 @@ jobs:
       run: |
         python -m PyInstaller --clean telegram_monitor.spec
     
-    - name: Find executable path
+    - name: Find executable and set output
       id: find_exe
-      run: |
-        if [ -f "dist/TelegramMonitor.exe" ]; then
-          echo "path=dist/TelegramMonitor.exe" >> $GITHUB_OUTPUT
-          echo "Found standalone EXE"
-        elif [ -f "dist/TelegramMonitor/TelegramMonitor.exe" ]; then
-          echo "path=dist/TelegramMonitor/TelegramMonitor.exe" >> $GITHUB_OUTPUT
-          echo "Found in folder"
-        else
-          echo "EXE not found in dist"
-          ls -la dist/
-          exit 1
-        fi
-        echo "Executable path: ${{ steps.find_exe.outputs.path }}"
-    
-    - name: List dist contents (Windows)
       shell: cmd
       run: |
+        echo Searching for executable...
         dir dist
-        if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
-          dir dist\TelegramMonitor\TelegramMonitor.exe
+        if exist "dist\TelegramMonitor.exe" (
+          echo path=dist\TelegramMonitor.exe > %GITHUB_OUTPUT%
+          echo Found standalone EXE
+        ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
+          echo path=dist\TelegramMonitor\TelegramMonitor.exe > %GITHUB_OUTPUT%
+          echo Found in folder
+          dir dist\TelegramMonitor
+        ) else (
+          echo EXE not found
+          dir dist /s
+          exit 1
         )
     
     - name: Upload build artifact
@@ -73,7 +68,7 @@ jobs:
         path: ${{ steps.find_exe.outputs.path }}
         retention-days: 7
     
-    - name: Create GitHub release
+    - name: Upload to GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
@@ -83,4 +78,3 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
