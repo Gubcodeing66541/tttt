@@ -88,6 +88,12 @@ def init_process_manager():
 async def startup_event():
     """启动时尝试加载配置"""
     if init_process_manager():
+        # 尝试连接检查登录状态
+        if process_manager:
+            process_manager.send_command({'type': 'connect'})
+            response = process_manager.get_response(timeout=3.0)
+            if response and response.get('is_authorized'):
+                logger.info("检测到已登录状态")
         logger.info("系统已就绪")
     else:
         logger.info("等待用户配置 API 凭证")
@@ -114,14 +120,27 @@ async def get_config():
     """获取 API 配置状态"""
     config = load_config()
     
+    # 检查登录状态
+    is_logged_in = False
+    if config and process_manager:
+        try:
+            process_manager.send_command({'type': 'connect'})
+            response = process_manager.get_response(timeout=2.0)
+            if response and response.get('is_authorized'):
+                is_logged_in = True
+        except:
+            pass
+    
     if config:
         return JSONResponse({
             "configured": True,
-            "message": "API 已配置"
+            "is_logged_in": is_logged_in,
+            "message": "API 已配置" + ("，已登录" if is_logged_in else "，未登录")
         })
     else:
         return JSONResponse({
             "configured": False,
+            "is_logged_in": False,
             "message": "请先配置 API 凭证"
         })
 
