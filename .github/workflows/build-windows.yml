@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build:
@@ -41,6 +41,7 @@ jobs:
         python -m PyInstaller --clean telegram_monitor.spec
     
     - name: List dist contents
+      shell: cmd
       run: |
         dir dist
         if exist "dist\TelegramMonitor.exe" (
@@ -54,30 +55,43 @@ jobs:
     
     - name: Find executable
       id: find_exe
+      shell: cmd
       run: |
         if exist "dist\TelegramMonitor.exe" (
-          echo path=dist\TelegramMonitor.exe >> $GITHUB_OUTPUT
+          echo path=dist\TelegramMonitor.exe >> $GITHUB_ENV
           echo "Found standalone EXE"
         ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
-          echo path=dist\TelegramMonitor\TelegramMonitor.exe >> $GITHUB_OUTPUT
+          echo path=dist\TelegramMonitor\TelegramMonitor.exe >> $GITHUB_ENV
           echo "Found in folder"
         ) else (
           echo "EXE not found"
           exit 1
         )
+    
+    - name: Set executable path
+      id: set_path
       shell: cmd
+      run: |
+        if exist "dist\TelegramMonitor.exe" (
+          echo "executable_path=dist\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+        ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
+          echo "executable_path=dist\TelegramMonitor\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+        ) else (
+          echo "EXE not found"
+          exit 1
+        )
     
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-Windows
-        path: ${{ steps.find_exe.outputs.path }}
+        path: ${{ steps.set_path.outputs.executable_path }}
     
     - name: Create release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ steps.find_exe.outputs.path }}
+        files: ${{ steps.set_path.outputs.executable_path }}
         tag_name: ${{ github.ref_name }}
         draft: false
         prerelease: false
