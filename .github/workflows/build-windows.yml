@@ -48,11 +48,11 @@ jobs:
       run: |
         dir dist
         if exist "dist\TelegramMonitor.exe" (
-          echo "executable_path=dist\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo ::set-output name=executable_path::dist\TelegramMonitor.exe
           echo Found standalone EXE
           dir dist\TelegramMonitor.exe
         ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
-          echo "executable_path=dist\TelegramMonitor\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo ::set-output name=executable_path::dist\TelegramMonitor\TelegramMonitor.exe
           echo Found in folder
           dir dist\TelegramMonitor
         ) else (
