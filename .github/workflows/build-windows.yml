@@ -42,37 +42,42 @@ jobs:
       run: |
         python -m PyInstaller --clean telegram_monitor.spec
     
-    - name: Find and verify executable
+    - name: Find executable path
       id: find_exe
+      run: |
+        if [ -f "dist/TelegramMonitor.exe" ]; then
+          echo "path=dist/TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo "Found standalone EXE"
+        elif [ -f "dist/TelegramMonitor/TelegramMonitor.exe" ]; then
+          echo "path=dist/TelegramMonitor/TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo "Found in folder"
+        else
+          echo "EXE not found in dist"
+          ls -la dist/
+          exit 1
+        fi
+        echo "Executable path: ${{ steps.find_exe.outputs.path }}"
+    
+    - name: List dist contents (Windows)
       shell: cmd
       run: |
         dir dist
-        if exist "dist\TelegramMonitor.exe" (
-          echo ::set-output name=executable_path::dist\TelegramMonitor.exe
-          echo Found standalone EXE
-          dir dist\TelegramMonitor.exe
-        ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
-          echo ::set-output name=executable_path::dist\TelegramMonitor\TelegramMonitor.exe
-          echo Found in folder
-          dir dist\TelegramMonitor
-        ) else (
-          echo "EXE not found in dist"
-          dir dist /s
-          exit 1
+        if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
+          dir dist\TelegramMonitor\TelegramMonitor.exe
         )
     
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-Windows
-        path: ${{ steps.find_exe.outputs.executable_path }}
+        path: ${{ steps.find_exe.outputs.path }}
         retention-days: 7
     
     - name: Create GitHub release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ steps.find_exe.outputs.executable_path }}
+        files: ${{ steps.find_exe.outputs.path }}
         tag_name: ${{ github.ref_name }}
         draft: false
         prerelease: false
