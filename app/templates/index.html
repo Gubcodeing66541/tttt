@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram 群聊监听系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .groups-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .group-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .group-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .group-item.selected {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .message-item input {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .add-message-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+        
+        .remove-message-btn {
+            background: #dc3545;
+            padding: 5px 15px;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .logs {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-item {
+            padding: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Telegram 群聊监听系统</h1>
+            <p>自动化消息监控和回复</p>
+        </div>
+        
+        <div class="content">
+            <!-- 步骤 0: API 配置 -->
+            <div class="step" id="step0">
+                <div class="step-title">
+                    <span class="step-number">0</span>
+                    API 配置
+                </div>
+                <div style="margin-bottom: 15px; padding: 15px; background: #d1ecf1; border-radius: 8px; color: #0c5460;">
+                    <strong>📱 获取 API 凭证：</strong><br>
+                    1. 访问 <a href="https://my.telegram.org" target="_blank" style="color: #667eea;">https://my.telegram.org</a><br>
+                    2. 使用你的 Telegram 账号登录<br>
+                    3. 点击 "API development tools"<br>
+                    4. 创建应用（可随意填写信息）<br>
+                    5. 获取 api_id 和 api_hash
+                </div>
+                <div class="form-group">
+                    <label>API ID:</label>
+                    <input type="text" id="api-id" placeholder="输入你的 API ID">
+                </div>
+                <div class="form-group">
+                    <label>API Hash:</label>
+                    <input type="text" id="api-hash" placeholder="输入你的 API Hash">
+                </div>
+                <button class="btn" onclick="saveAPIConfig()" id="save-config-btn">保存配置</button>
+                <div id="step0-status" class="status hidden"></div>
+            </div>
+            
+            <!-- 步骤 1: 登录 -->
+            <div class="step hidden" id="step1">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Telegram 登录
+                </div>
+                <div class="form-group">
+                    <label>手机号:</label>
+                    <input type="text" id="phone" placeholder="+86138xxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>密码:</label>
+                    <input type="password" id="password" placeholder="可选">
+                </div>
+                <div class="form-group">
+                    <label>二次密码:</label>
+                    <input type="password" id="second-password" placeholder="如果启用了两步验证">
+                </div>
+                <button class="btn" onclick="sendCode()" id="send-code-btn">获取验证码</button>
+                <div id="step1-status" class="status hidden"></div>
+            </div>
+            
+            <!-- 步骤 2: 验证码 -->
+            <div class="step hidden" id="step2">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    输入验证码
+                </div>
+                <div class="form-group">
+                    <label>验证码:</label>
+                    <input type="text" id="code" placeholder="输入收到的验证码">
+                </div>
+                <div class="form-group hidden" id="password-group">
+                    <label>二次密码:</label>
+                    <input type="password" id="verify-password" placeholder="输入二次密码">
+                </div>
+                <button class="btn" onclick="verifyCode()">确定登录</button>
+                <button class="btn btn-secondary" onclick="resetStep()">重新开始</button>
+                <div id="step2-status" class="status hidden"></div>
+            </div>
+            
+            <!-- 步骤 3: 选择群聊 -->
+            <div class="step hidden" id="step3">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    选择监听群聊
+                </div>
+                <button class="btn" onclick="loadGroups()">获取群聊列表</button>
+                <div id="groups-container" class="groups-list hidden" style="margin-top: 15px;">
+                    <!-- 群聊列表将在这里动态生成 -->
+                </div>
+                <div id="step3-status" class="status hidden"></div>
+            </div>
+            
+            <!-- 步骤 4: 配置监听规则 -->
+            <div class="step hidden" id="step4">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    配置监听规则
+                </div>
+                <div class="form-group">
+                    <label>关键字 (逗号分隔):</label>
+                    <input type="text" id="keywords" placeholder="关键字1,关键字2">
+                </div>
+                <div class="form-group">
+                    <label>自动回复消息 (每行一条):</label>
+                    <textarea id="messages" placeholder="消息1&#10;消息2&#10;消息3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>发送间隔时间 (秒):</label>
+                    <input type="number" id="interval" value="1" min="0">
+                </div>
+                <button class="btn" onclick="startMonitor()" id="start-monitor-btn">开始监听</button>
+                <div id="step4-status" class="status hidden"></div>
+            </div>
+            
+            <!-- 步骤 5: 监听中 -->
+            <div class="step hidden" id="step5">
+                <div class="step-title">
+                    <span class="step-number">5</span>
+                    监听状态
+                </div>
+                <div id="monitor-status" class="status info">
+                    正在监听中...
+                </div>
+                <button class="btn btn-secondary" onclick="stopMonitor()">停止监听</button>
+                
+                <div class="logs" id="logs-container">
+                    <div class="log-item">等待事件...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedGroupId = null;
+        let ws = null;
+        let isConfigured = false;
+        
+        // API 基础 URL
+        const API_BASE = window.location.origin;
+        
+        // 检查 API 配置状态
+        async function checkConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/config`);
+                const result = await response.json();
+                
+                if (result.configured) {
+                    isConfigured = true;
+                    document.getElementById('step0').classList.add('hidden');
+                    document.getElementById('step1').classList.remove('hidden');
+                } else {
+                    isConfigured = false;
+                    document.getElementById('step0').classList.remove('hidden');
+                    document.getElementById('step1').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('检查配置失败', error);
+            }
+        }
+        
+        // 保存 API 配置
+        async function saveAPIConfig() {
+            const apiId = document.getElementById('api-id').value;
+            const apiHash = document.getElementById('api-hash').value;
+            
+            if (!apiId || !apiHash) {
+                showStatus('step0-status', '请输入 API ID 和 API Hash', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('save-config-btn');
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/config`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        api_id: apiId,
+                        api_hash: apiHash
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('step0-status', '配置成功！', 'success');
+                    setTimeout(() => {
+                        document.getElementById('step0').classList.add('hidden');
+                        document.getElementById('step1').classList.remove('hidden');
+                        isConfigured = true;
+                    }, 1000);
+                } else {
+                    showStatus('step0-status', result.error || '配置失败', 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showStatus('step0-status', '网络错误', 'error');
+                btn.disabled = false;
+            }
+        }
+        
+        // 页面加载时检查配置
+        checkConfig();
+        
+        // 发送验证码
+        async function sendCode() {
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            
+            if (!phone) {
+                showStatus('step1-status', '请输入手机号', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('send-code-btn');
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/send_code`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone, password})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('step1-status', '验证码已发送', 'success');
+                    setTimeout(() => {
+                        document.getElementById('step1').classList.add('hidden');
+                        document.getElementById('step2').classList.remove('hidden');
+                    }, 1000);
+                } else {
+                    showStatus('step1-status', result.error || '发送失败', 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                // 检查是否是对应的错误
+                let errorMsg = '网络错误';
+                if (error.message && error.message.includes('already used')) {
+                    errorMsg = '验证码选项已用尽，请等待一段时间后再试';
+                }
+                showStatus('step1-status', errorMsg, 'error');
+                btn.disabled = false;
+            }
+        }
+        
+        // 验证码验证
+        async function verifyCode() {
+            const code = document.getElementById('code').value;
+            const password = document.getElementById('verify-password').value;
+            
+            if (!code) {
+                showStatus('step2-status', '请输入验证码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/verify`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code,
+                        second_password: password || null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                console.log('验证结果:', result);
+                
+                if (result.success) {
+                    showStatus('step2-status', '登录成功', 'success');
+                    setTimeout(() => {
+                        document.getElementById('step2').classList.add('hidden');
+                        document.getElementById('step3').classList.remove('hidden');
+                    }, 1000);
+                } else {
+                    console.log('错误信息:', result.error);
+                    
+                    // 如果需要二次密码或密码错误，显示密码输入框
+                    if (result.error === 'need_password' || result.error === '需要二次密码') {
+                        document.getElementById('password-group').classList.remove('hidden');
+                        showStatus('step2-status', '请输入二次密码', 'error');
+                        // 不需要清空验证码，因为可能需要和密码一起提交
+                    } else if (result.error === '二次密码错误') {
+                        document.getElementById('password-group').classList.remove('hidden');
+                        showStatus('step2-status', '二次密码错误，请输入正确的密码', 'error');
+                        // 保留验证码，清空密码框让用户重新输入密码
+                        document.getElementById('verify-password').value = '';
+                        document.getElementById('verify-password').focus();
+                    } else {
+                        // 其他错误（如验证码过期、验证码选项已用尽）
+                        let errorMsg = result.error || '验证失败';
+                        
+                        // 特殊处理验证码选项已用尽的错误
+                        if (errorMsg.includes('already used') || errorMsg.includes('所有可用选项')) {
+                            errorMsg = '验证码选项已用尽，请点击"重新开始"等待一段时间后重新获取验证码';
+                        } else if (errorMsg.includes('expired') || errorMsg.includes('过期')) {
+                            errorMsg = '验证码已过期，请点击"重新开始"重新获取验证码';
+                        }
+                        
+                        showStatus('step2-status', errorMsg, 'error');
+                    }
+                }
+            } catch (error) {
+                showStatus('step2-status', '网络错误', 'error');
+            }
+        }
+        
+        // 重置步骤
+        function resetStep() {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('code').value = '';
+            document.getElementById('verify-password').value = '';
+            document.getElementById('password-group').classList.add('hidden');
+            document.getElementById('step2-status').classList.add('hidden');
+        }
+        
+        // 加载群聊列表
+        async function loadGroups() {
+            try {
+                const response = await fetch(`${API_BASE}/api/dialogs`);
+                const result = await response.json();
+                
+                if (result.success && result.groups) {
+                    displayGroups(result.groups);
+                    document.getElementById('groups-container').classList.remove('hidden');
+                    showStatus('step3-status', `找到 ${result.groups.length} 个群聊`, 'success');
+                } else {
+                    showStatus('step3-status', result.error || '获取失败', 'error');
+                }
+            } catch (error) {
+                showStatus('step3-status', '网络错误', 'error');
+            }
+        }
+        
+        // 显示群聊列表
+        function displayGroups(groups) {
+            const container = document.getElementById('groups-container');
+            container.innerHTML = '';
+            
+            groups.forEach(group => {
+                const item = document.createElement('div');
+                item.className = 'group-item';
+                item.innerHTML = `<strong>${group.title}</strong> (${group.participants_count || 0} 成员)`;
+                item.onclick = () => selectGroup(group.id, item);
+                container.appendChild(item);
+            });
+        }
+        
+        // 选择群聊
+        function selectGroup(groupId, element) {
+            // 移除其他选中状态
+            document.querySelectorAll('.group-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 添加选中状态
+            element.classList.add('selected');
+            selectedGroupId = groupId;
+            
+            // 显示下一步
+            document.getElementById('step3').classList.add('hidden');
+            document.getElementById('step4').classList.remove('hidden');
+        }
+        
+        // 开始监听
+        async function startMonitor() {
+            const keywords = document.getElementById('keywords').value;
+            const messages = document.getElementById('messages').value.split('\n').filter(m => m.trim());
+            const interval = parseInt(document.getElementById('interval').value) || 1;
+            
+            if (!keywords || keywords.trim() === '') {
+                showStatus('step4-status', '请输入关键字', 'error');
+                return;
+            }
+            
+            if (!messages || messages.length === 0) {
+                showStatus('step4-status', '请输入消息列表', 'error');
+                return;
+            }
+            
+            if (!selectedGroupId) {
+                showStatus('step4-status', '请选择群聊', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/start_monitor`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        target_group_id: selectedGroupId,
+                        keywords: keywords.split(',').map(k => k.trim()),
+                        messages: messages,
+                        interval: interval
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('step4-status', '监听已开始', 'success');
+                    setTimeout(() => {
+                        document.getElementById('step4').classList.add('hidden');
+                        document.getElementById('step5').classList.remove('hidden');
+                        connectWebSocket();
+                    }, 1000);
+                } else {
+                    showStatus('step4-status', result.error || '启动失败', 'error');
+                }
+            } catch (error) {
+                showStatus('step4-status', '网络错误', 'error');
+            }
+        }
+        
+        // 停止监听
+        async function stopMonitor() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stop_monitor`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('step5').classList.add('hidden');
+                    document.getElementById('step1').classList.remove('hidden');
+                    
+                    if (ws) {
+                        ws.close();
+                        ws = null;
+                    }
+                }
+            } catch (error) {
+                console.error('停止监听失败', error);
+            }
+        }
+        
+        // 连接 WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.results) {
+                    data.results.forEach(result => {
+                        addLog(JSON.stringify(result));
+                    });
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket 错误:', error);
+            };
+            
+            // 定期获取结果
+            setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/results`);
+                    const data = await response.json();
+                    
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(result => {
+                            addLog(JSON.stringify(result));
+                        });
+                    }
+                } catch (error) {
+                    // 忽略错误
+                }
+            }, 1000);
+        }
+        
+        // 添加日志
+        function addLog(message) {
+            const logsContainer = document.getElementById('logs-container');
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+            logItem.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            logsContainer.appendChild(logItem);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        // 显示状态
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+
