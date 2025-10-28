@@ -1,0 +1,59 @@
+name: Build macOS Executable
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Clean old build
+      run: |
+        rm -rf build dist
+      continue-on-error: true
+    
+    - name: Build executable
+      run: |
+        python -m PyInstaller --clean telegram_monitor.spec
+    
+    - name: Make executable
+      run: |
+        chmod +x dist/TelegramMonitor
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: TelegramMonitor-macOS
+        path: dist/TelegramMonitor
+    
+    - name: Create release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/TelegramMonitor
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,0 +1,20 @@
+# Docker Windows 打包配置
+# 注意：由于 WINE 复杂且不稳定，更推荐使用 GitHub Actions
+
+FROM python:3.11
+
+WORKDIR /work
+
+# 安装依赖
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# 安装 PyInstaller
+RUN pip install pyinstaller
+
+# 复制项目文件
+COPY . .
+
+# 打包命令（会在当前平台打包，如果需要 Windows EXE 需要使用 WINE 或 Windows 环境）
+CMD ["python", "-m", "PyInstaller", "--clean", "telegram_monitor.spec"]
+
