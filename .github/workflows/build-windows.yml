@@ -68,13 +68,18 @@ jobs:
         path: ${{ steps.find_exe.outputs.path }}
         retention-days: 7
     
-    - name: Upload to GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ steps.find_exe.outputs.path }}
-        tag_name: ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Display download info
+      run: |
+        echo "✅ Build successful!"
+        echo ""
+        echo "📦 Download EXE file:"
+        echo "1. Go to: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "2. Scroll down to 'Artifacts'"
+        echo "3. Download 'TelegramMonitor-Windows.zip'"
+        echo "4. Extract the ZIP file"
+        echo ""
+        echo "📝 To create a Release with EXE:"
+        echo "1. Go to: https://github.com/${{ github.repository }}/releases/new"
+        echo "2. Tag: ${{ github.ref_name }}"
+        echo "3. Title: Release ${{ github.ref_name }}"
+        echo "4. Upload EXE from the Artifacts"
