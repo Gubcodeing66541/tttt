@@ -43,24 +43,41 @@ jobs:
     - name: List dist contents
       run: |
         dir dist
-        if exist dist\TelegramMonitor.exe (
+        if exist "dist\TelegramMonitor.exe" (
           echo EXE file exists
+          dir dist\TelegramMonitor.exe
         ) else (
           echo EXE file NOT found
-          dir dist /s
+          echo Checking in TelegramMonitor folder...
+          dir dist\TelegramMonitor
         )
+    
+    - name: Find executable
+      id: find_exe
+      run: |
+        if exist "dist\TelegramMonitor.exe" (
+          echo path=dist\TelegramMonitor.exe >> $GITHUB_OUTPUT
+          echo "Found standalone EXE"
+        ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
+          echo path=dist\TelegramMonitor\TelegramMonitor.exe >> $GITHUB_OUTPUT
+          echo "Found in folder"
+        ) else (
+          echo "EXE not found"
+          exit 1
+        )
+      shell: cmd
     
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-Windows
-        path: dist\TelegramMonitor.exe
+        path: ${{ steps.find_exe.outputs.path }}
     
-    - name: Create release with EXE
+    - name: Create release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist\TelegramMonitor.exe
+        files: ${{ steps.find_exe.outputs.path }}
         tag_name: ${{ github.ref_name }}
         draft: false
         prerelease: false
