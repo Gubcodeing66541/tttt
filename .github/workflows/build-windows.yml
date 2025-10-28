@@ -40,17 +40,25 @@ jobs:
       run: |
         python -m PyInstaller --clean telegram_monitor.spec
     
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: TelegramMonitor-Windows
-        path: dist/TelegramMonitor.exe
+    - name: List dist contents
+      run: |
+        ls -la dist/
+        file dist/TelegramMonitor.exe
     
-    - name: Create release
+    - name: Upload executable as release asset
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: dist/TelegramMonitor.exe
+        tag_name: ${{ github.ref_name }}
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TelegramMonitor-Windows
+        path: dist/TelegramMonitor.exe
 
