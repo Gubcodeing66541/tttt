@@ -183,7 +183,7 @@ async def send_code(request: LoginRequest):
         'type': 'send_code',
         'phone': request.phone
     })
-    response = process_manager.get_response(timeout=5.0)
+    response = process_manager.get_response(timeout=30.0, filter_type='code_sent')
     
     if response:
         return JSONResponse(response)

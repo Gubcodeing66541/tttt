@@ -553,6 +553,12 @@
             document.getElementById('verify-password').value = '';
             document.getElementById('password-group').classList.add('hidden');
             document.getElementById('step2-status').classList.add('hidden');
+            
+            // 启用所有按钮
+            document.getElementById('send-code-btn').disabled = false;
+            
+            // 清空状态
+            document.getElementById('step1-status').classList.add('hidden');
         }
         
         // 加载群聊列表

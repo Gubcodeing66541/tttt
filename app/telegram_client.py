@@ -121,8 +121,22 @@ class TelegramWorker:
     async def send_code(self, phone: str):
         """发送验证码"""
         try:
-            if self.client is None:
-                await self.connect()
+            # 如果已有客户端且已断开，先清理
+            if self.client is not None:
+                try:
+                    if self.client.is_connected():
+                        await self.client.disconnect()
+                except:
+                    pass
+                self.client = None
+            
+            # 创建新客户端连接
+            self.client = TelegramClient(
+                'telegram_session',
+                self.api_id,
+                self.api_hash
+            )
+            await self.client.connect()
             
             await self.client.send_code_request(phone)
             
@@ -134,6 +148,14 @@ class TelegramWorker:
             logger.info(f"验证码已发送到: {phone}")
         except Exception as e:
             logger.error(f"发送验证码失败: {e}")
+            
+            # 清理失败的客户端
+            if self.client is not None:
+                try:
+                    await self.client.disconnect()
+                except:
+                    pass
+                self.client = None
             
             # 友好的错误提示
             error_msg = str(e)
