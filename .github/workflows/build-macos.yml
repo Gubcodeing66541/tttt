@@ -44,7 +44,7 @@ jobs:
         chmod +x dist/TelegramMonitor
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-macOS
         path: dist/TelegramMonitor

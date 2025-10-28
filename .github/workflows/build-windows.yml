@@ -41,7 +41,7 @@ jobs:
         python -m PyInstaller --clean telegram_monitor.spec
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-Windows
         path: dist/TelegramMonitor.exe
