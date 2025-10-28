@@ -31,53 +31,33 @@ jobs:
         pip install -r requirements.txt
     
     - name: Clean old build
+      shell: cmd
       run: |
         if exist build rmdir /s /q build
         if exist dist rmdir /s /q dist
       continue-on-error: true
     
     - name: Build executable
+      shell: cmd
       run: |
         python -m PyInstaller --clean telegram_monitor.spec
     
-    - name: List dist contents
+    - name: Find and verify executable
+      id: find_exe
       shell: cmd
       run: |
         dir dist
         if exist "dist\TelegramMonitor.exe" (
-          echo EXE file exists
-          dir dist\TelegramMonitor.exe
-        ) else (
-          echo EXE file NOT found
-          echo Checking in TelegramMonitor folder...
-          dir dist\TelegramMonitor
-        )
-    
-    - name: Find executable
-      id: find_exe
-      shell: cmd
-      run: |
-        if exist "dist\TelegramMonitor.exe" (
-          echo path=dist\TelegramMonitor.exe >> $GITHUB_ENV
-          echo "Found standalone EXE"
-        ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
-          echo path=dist\TelegramMonitor\TelegramMonitor.exe >> $GITHUB_ENV
-          echo "Found in folder"
-        ) else (
-          echo "EXE not found"
-          exit 1
-        )
-    
-    - name: Set executable path
-      id: set_path
-      shell: cmd
-      run: |
-        if exist "dist\TelegramMonitor.exe" (
           echo "executable_path=dist\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo Found standalone EXE
+          dir dist\TelegramMonitor.exe
         ) else if exist "dist\TelegramMonitor\TelegramMonitor.exe" (
           echo "executable_path=dist\TelegramMonitor\TelegramMonitor.exe" >> $GITHUB_OUTPUT
+          echo Found in folder
+          dir dist\TelegramMonitor
         ) else (
-          echo "EXE not found"
+          echo "EXE not found in dist"
+          dir dist /s
           exit 1
         )
     
@@ -85,13 +65,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: TelegramMonitor-Windows
-        path: ${{ steps.set_path.outputs.executable_path }}
+        path: ${{ steps.find_exe.outputs.executable_path }}
+        retention-days: 7
     
-    - name: Create release
+    - name: Create GitHub release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ steps.set_path.outputs.executable_path }}
+        files: ${{ steps.find_exe.outputs.executable_path }}
         tag_name: ${{ github.ref_name }}
         draft: false
         prerelease: false
